@@ -1,2 +1,2 @@
-# python-bitkub
-Bitkub client work both sync and async
+# bitkub-python
+A Python wrapper for Bitkub API
