@@ -1,2 +1,3 @@
 # bitkub-python
-A Python wrapper for Bitkub API
+A Python client for Bitkub API 
+
