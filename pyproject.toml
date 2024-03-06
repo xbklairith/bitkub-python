@@ -2,7 +2,7 @@
 name = "bitkub-python"
 version = "0.0.1"
 authors = [{ name = "Praphan Klairith", email = "p.klairith@gmail.com" }]
-description = "A Python wrapper for Bitkub API"
+description = "A Python library for Bitkub API"
 requires-python = ">=3.7"
 readme = "README.md"
 classifiers = [
