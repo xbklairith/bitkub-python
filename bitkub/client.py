@@ -37,7 +37,7 @@ class BaseClient(ABC):
             hashlib.sha256,
         ).hexdigest()
 
-    def headers(self, ts, sig):
+    def private_headers(self, ts, sig) -> dict:
         return {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -46,15 +46,39 @@ class BaseClient(ABC):
             "X-BTK-APIKEY": self._api_key,
         }
 
+    def public_headers(self) -> dict:
+        return {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+
 
 class Client(BaseClient):
-    def handle_response(self, response):
+
+    def __init__(
+        self,
+        api_key="",
+        api_secret="",
+        base_url="https://api.bitkub.com",
+        logging_level=logging.INFO,
+    ):
+        super().__init__(api_key, api_secret, base_url, logging_level)
+        self.session = requests.Session()
+
+    def _guard_errors(self, response: requests.Response):
+
+        if response.status_code < 200 or response.status_code >= 300:
+            raise BitkubException(f"{response.status_code} : {response.text} ")
+
+    def _handle_response(self, response: requests.Response) -> dict:
+        self._guard_errors(response)
+
         try:
             data = response.json()
+
         except ValueError:
-            data = response.text
-        if response.status_code != 200:
-            raise BitkubException(data)
+            raise BitkubException("Invalid JSON response")
+
         return data
 
     def send_request(self, method, path, body={}):
@@ -64,10 +88,20 @@ class Client(BaseClient):
         payload = [ts, method, path, str_body]
         sig = self.sign("".join(payload))
 
-        headers = self.headers(ts, sig)
+        headers = self.private_headers(ts, sig)
         self.logger.debug("Request: %s %s %s", method, path, str_body)
 
-        response = requests.request(
+        response = self.session.request(
             method, self._base_url + path, headers=headers, data=str_body
         )
-        return self.handle_response(response)
+        return self._handle_response(response)
+
+    def send_public_request(self, method, path, body={}):
+        str_body = json.dumps(body)
+        response = requests.request(
+            method, self._base_url + path, headers=self.public_headers(), data=str_body
+        )
+        return self._handle_response(response)
+
+    def status(self):
+        return self.send_public_request("GET", "/api/status")
