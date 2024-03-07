@@ -13,7 +13,6 @@ def input_value():
 
 @pytest.fixture
 def mock_requests():
-    import requests
 
     with requests_mock.Mocker() as mock:
 
@@ -23,8 +22,13 @@ def mock_requests():
 @pytest.fixture
 def mock_client(mock_requests):
     from bitkub import Client
+    import logging
 
     client = Client(api_key="api-key", api_secret="api-secret")
+
+    logger = logging.getLogger("bitkub")
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler())
     return client
 
 

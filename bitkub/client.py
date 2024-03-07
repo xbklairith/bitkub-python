@@ -104,4 +104,11 @@ class Client(BaseClient):
         return self._handle_response(response)
 
     def status(self):
-        return self.send_public_request("GET", "/api/status")
+        """
+        Get status of the API server
+
+        :return: dict
+        """
+
+        response = self.send_public_request("GET", "/api/status")
+        return response
