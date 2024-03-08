@@ -5,12 +5,15 @@ from abc import ABC
 import time
 
 import logging
+from typing import Optional
 
 import requests
 
 from bitkub.exception import BitkubException
+from dataclasses import dataclass
 
 
+@dataclass(frozen=True)
 class Endpoints:
     # public endpoints
     STATUS = "/api/status"
@@ -52,8 +55,8 @@ class Endpoints:
 class BaseClient(ABC):
     def __init__(
         self,
-        api_key="",
-        api_secret="",
+        api_key: Optional[str] = "",
+        api_secret: Optional[str] = "",
         base_url="https://api.bitkub.com",
         logging_level=logging.INFO,
     ):
@@ -95,8 +98,8 @@ class Client(BaseClient):
 
     def __init__(
         self,
-        api_key="",
-        api_secret="",
+        api_key: Optional[str] = "",
+        api_secret: Optional[str] = "",
         base_url="https://api.bitkub.com",
         logging_level=logging.INFO,
     ):
@@ -134,10 +137,14 @@ class Client(BaseClient):
         )
         return self._handle_response(response)
 
-    def send_public_request(self, method, path, body={}):
+    def send_public_request(self, method, path, body={}, path_params={}):
         str_body = json.dumps(body)
         response = requests.request(
-            method, self._base_url + path, headers=self.public_headers(), data=str_body
+            method,
+            self._base_url + path,
+            headers=self.public_headers(),
+            data=str_body,
+            params=path_params,
         )
         return self._handle_response(response)
 
@@ -151,6 +158,14 @@ class Client(BaseClient):
         response = self.send_public_request("GET", Endpoints.STATUS)
         return response
 
-    def market_symbols(self):
+    def symbols(self):
         response = self.send_public_request("GET", Endpoints.MARKET_SYMBOLS)
+        return response
+
+    def tickers(self, symbol: str = ""):
+        response = self.send_public_request(
+            "GET",
+            Endpoints.MARKET_TICKER,
+            path_params={"sym": symbol},
+        )
         return response
