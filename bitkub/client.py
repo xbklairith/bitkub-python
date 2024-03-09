@@ -68,17 +68,19 @@ class BaseClient(ABC):
         self.logger.setLevel(logging_level)
         self.logger.addHandler(logging.NullHandler())
 
-    def json_encode(self, data):
+    def _json_encode(self, data):
         return json.dumps(data, separators=(",", ":"), sort_keys=True)
 
-    def sign(self, payload_string: str):
+    def _sign(self, payload_string: str):
+        if not self._api_secret:
+            raise BitkubException("API secret not set")
         return hmac.new(
             self._api_secret.encode("utf-8"),
             payload_string.encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()
 
-    def private_headers(self, ts, sig) -> dict:
+    def _private_headers(self, ts, sig) -> dict:
         return {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -87,7 +89,7 @@ class BaseClient(ABC):
             "X-BTK-APIKEY": self._api_key,
         }
 
-    def public_headers(self) -> dict:
+    def _public_headers(self) -> dict:
         return {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -122,14 +124,14 @@ class Client(BaseClient):
 
         return data
 
-    def send_request(self, method, path, body={}):
+    def __send_request(self, method, path, body={}):
 
         ts = str(round(time.time() * 1000))
         str_body = json.dumps(body)
         payload = [ts, method, path, str_body]
-        sig = self.sign("".join(payload))
+        sig = self._sign("".join(payload))
 
-        headers = self.private_headers(ts, sig)
+        headers = self._private_headers(ts, sig)
         self.logger.debug("Request: %s %s %s", method, path, str_body)
 
         response = self.session.request(
@@ -137,35 +139,79 @@ class Client(BaseClient):
         )
         return self._handle_response(response)
 
-    def send_public_request(self, method, path, body={}, path_params={}):
+    def _send_public_request(self, method, path, body={}, path_params={}):
         str_body = json.dumps(body)
         response = requests.request(
             method,
             self._base_url + path,
-            headers=self.public_headers(),
+            headers=super()._public_headers(),
             data=str_body,
             params=path_params,
         )
         return self._handle_response(response)
 
-    def status(self):
+    def fetch_server_time(self):
+        response = self._send_public_request("GET", Endpoints.SERVER_TIME)
+        return response
+
+    def fetch_status(self):
         """
         Get status of the API server
 
         :return: dict
         """
 
-        response = self.send_public_request("GET", Endpoints.STATUS)
+        response = self._send_public_request("GET", Endpoints.STATUS)
         return response
 
-    def symbols(self):
-        response = self.send_public_request("GET", Endpoints.MARKET_SYMBOLS)
+    def fetch_symbols(self):
+        response = self._send_public_request("GET", Endpoints.MARKET_SYMBOLS)
         return response
 
-    def tickers(self, symbol: str = ""):
-        response = self.send_public_request(
+    def fetch_tickers(self, symbol: str = ""):
+        response = self._send_public_request(
             "GET",
             Endpoints.MARKET_TICKER,
             path_params={"sym": symbol},
+        )
+        return response
+
+    def fetch_trades(self, symbol: str = "", limit: int = 10):
+        response = self._send_public_request(
+            "GET",
+            Endpoints.MARKET_TRADES,
+            path_params={"sym": symbol, "lmt": limit},
+        )
+        return response
+
+    def fetch_bids(self, symbol: str = "", limit: int = 10):
+        response = self._send_public_request(
+            "GET",
+            Endpoints.MARKET_BIDS,
+            path_params={"sym": symbol, "lmt": limit},
+        )
+        return response
+
+    def fetch_asks(self, symbol: str = "", limit: int = 10):
+        response = self._send_public_request(
+            "GET",
+            Endpoints.MARKET_ASKS,
+            path_params={"sym": symbol, "lmt": limit},
+        )
+        return response
+
+    def fetch_order_books(self, symbol: str = "", limit: int = 10):
+        response = self._send_public_request(
+            "GET",
+            Endpoints.MARKET_BOOKS,
+            path_params={"sym": symbol, "lmt": limit},
+        )
+        return response
+
+    def fetch_depth(self, symbol: str = "", limit: int = 10):
+        response = self._send_public_request(
+            "GET",
+            Endpoints.MARKET_DEPTH,
+            path_params={"sym": symbol, "lmt": limit},
         )
         return response
