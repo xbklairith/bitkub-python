@@ -48,3 +48,19 @@ def test_get_tickers_by_symbol(
     mock_client.fetch_tickers("THB_BTC")
 
     assert matcher.called
+
+
+def test_fetch_user_trade_credit(
+    mock_client: Client, with_request_user_trade_credit: None
+):
+    response = mock_client.fetch_user_trade_credit()
+    assert response.get("error") == 0
+    assert response.get("result") == 1000
+
+
+def test_fetch_user_limits(mock_client: Client, with_request_user_limits: None):
+    response = mock_client.fetch_user_limits()
+    assert response.get("error") == 0
+    assert "limits" in response.get("result", {}).keys()
+    assert "usage" in response.get("result", {}).keys()
+    assert response["result"]["limits"]["fiat"]["withdraw"] == 5000000

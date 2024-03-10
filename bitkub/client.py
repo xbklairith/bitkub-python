@@ -69,7 +69,7 @@ class BaseClient(ABC):
         self.logger.addHandler(logging.NullHandler())
 
     def _json_encode(self, data):
-        return json.dumps(data, separators=(",", ":"), sort_keys=True)
+        return json.dumps(data)
 
     def _sign(self, payload_string: str):
         if not self._api_secret:
@@ -263,4 +263,34 @@ class Client(BaseClient):
                 "to": to_time,
             },
         )
+        return response
+
+    def fetch_user_limits(self):
+        """
+        Fetches the user's trading limits.
+
+        Returns:
+            dict: A dictionary containing the response from the API call. The dictionary has two keys:
+                - "error" (int): The error code. 0 indicates success.
+                - "result" (dict): The trading limits.
+        """
+        response = self.__send_request("POST", Endpoints.USER_LIMITS)
+        return response
+
+    def fetch_user_trade_credit(self):
+        """
+        Fetches the user's trade credit.
+
+        Returns:
+            dict: A dictionary containing the response from the API call. The dictionary has two keys:
+                - "error" (int): The error code. 0 indicates success.
+                - "result" (int): The trade credit amount.
+
+        Example:
+            {
+                "error": 0,
+                "result": 1000
+            }
+        """
+        response = self.__send_request("POST", Endpoints.USER_TRADING_CREDITS)
         return response

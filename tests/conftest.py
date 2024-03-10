@@ -98,3 +98,44 @@ def with_request_tickers(mock_requests: requests_mock.Mocker):
             },
         },
     )
+
+
+@pytest.fixture
+def with_request_user_limits(mock_requests: requests_mock.Mocker):
+    mock_requests.post(
+        "/api/v3/user/limits",
+        json={
+            "error": 0,
+            "result": {
+                "limits": {
+                    "crypto": {"deposit": 2.06711509, "withdraw": 2.06711509},
+                    "fiat": {"deposit": 5000000, "withdraw": 5000000},
+                },
+                "usage": {
+                    "crypto": {
+                        "deposit": 1.3926524,
+                        "withdraw": 0.97573785,
+                        "deposit_percentage": 67.37,
+                        "withdraw_percentage": 47.2,
+                        "deposit_thb_equivalent": 3368589.4,
+                        "withdraw_thb_equivalent": 2360143.98,
+                    },
+                    "fiat": {
+                        "deposit": 0,
+                        "withdraw": 0,
+                        "deposit_percentage": 0,
+                        "withdraw_percentage": 0,
+                    },
+                },
+                "rate": 2418830,
+            },
+        },
+    )
+
+
+@pytest.fixture
+def with_request_user_trade_credit(mock_requests: requests_mock.Mocker):
+    mock_requests.post(
+        "/api/v3/user/trading-credits",
+        json={"error": 0, "result": 1000},
+    )
