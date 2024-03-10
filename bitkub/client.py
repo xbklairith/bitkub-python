@@ -141,7 +141,7 @@ class Client(BaseClient):
 
     def _send_public_request(self, method, path, body={}, path_params={}):
         str_body = json.dumps(body)
-        response = requests.request(
+        response = self.session.request(
             method,
             self._base_url + path,
             headers=super()._public_headers(),
@@ -151,16 +151,22 @@ class Client(BaseClient):
         return self._handle_response(response)
 
     def fetch_server_time(self):
+        """
+        Fetches the server time from the Bitkub API.
+
+        Returns:
+            The server time response from the API.
+        """
         response = self._send_public_request("GET", Endpoints.SERVER_TIME)
         return response
 
     def fetch_status(self):
         """
-        Get status of the API server
+        Fetches the status of the Bitkub API.
 
-        :return: dict
+        Returns:
+            The response from the API call.
         """
-
         response = self._send_public_request("GET", Endpoints.STATUS)
         return response
 
@@ -169,6 +175,16 @@ class Client(BaseClient):
         return response
 
     def fetch_tickers(self, symbol: str = ""):
+        """
+        Fetches tickers for a specific symbol or all symbols.
+
+        Args:
+            symbol (str, optional): The symbol for which to fetch tickers. Defaults to "" (empty string) to fetch tickers for all symbols.
+
+        Returns:
+            dict: A dictionary containing the tickers data.
+
+        """
         response = self._send_public_request(
             "GET",
             Endpoints.MARKET_TICKER,
@@ -213,5 +229,38 @@ class Client(BaseClient):
             "GET",
             Endpoints.MARKET_DEPTH,
             path_params={"sym": symbol, "lmt": limit},
+        )
+        return response
+
+    def fetch_trading_view_history(
+        self,
+        symbol: str = "",
+        resolution: str = "",
+        from_time: int = 0,
+        to_time: int = 0,
+    ):
+        """
+        Fetches trading view history for a given symbol.
+
+        Args:
+            symbol (str): The symbol to fetch trading view history for. (e.g. BTC_THB)
+            resolution (str): The resolution of the trading view history data. (e.g. 1, 5, 15, 60, 240, 1D)
+            from_time (int): The starting timestamp of the trading view history data. (e.g. 1633424427)
+            to_time (int): The ending timestamp of the trading view history data. (e.g. 1633427427)
+
+        Returns:
+            dict: The trading view history data.
+
+        """
+
+        response = self._send_public_request(
+            "GET",
+            Endpoints.TRADING_VIEW_HISTORY,
+            path_params={
+                "symbol": symbol,
+                "resolution": resolution,
+                "from": from_time,
+                "to": to_time,
+            },
         )
         return response
