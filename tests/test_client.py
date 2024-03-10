@@ -64,3 +64,21 @@ def test_fetch_user_limits(mock_client: Client, with_request_user_limits: None):
     assert "limits" in response.get("result", {}).keys()
     assert "usage" in response.get("result", {}).keys()
     assert response["result"]["limits"]["fiat"]["withdraw"] == 5000000
+
+
+@pytest.mark.parametrize(
+    "method,endpoint",
+    [
+        ("fetch_wallet", "/api/v3/market/wallet"),
+        ("fetch_balances", "/api/v3/market/balances"),
+    ],
+)
+def test_fetch_market_called_endpoint(
+    method,
+    endpoint,
+    mock_client: Client,
+    mock_requests: requests_mock.Mocker,
+):
+    matcher = mock_requests.post(endpoint, json={"symbols": []})
+    getattr(mock_client, method)()
+    assert matcher.called

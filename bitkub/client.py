@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import hmac
 import json
@@ -33,13 +34,16 @@ class Endpoints:
     USER_TRADING_CREDITS = "/api/v3/user/trading-credits"
     MARKET_WALLET = "/api/v3/market/wallet"
     MARKET_BALANCES = "/api/v3/market/balances"
+
     MARKET_PLACE_BID = "/api/v3/market/place-bid"
     MARKET_PLACE_ASK = "/api/v3/market/place-ask"
     MARKET_CANCEL_ORDER = "/api/v3/market/cancel-order"
     MARKET_WSTOKEN = "/api/v3/market/wstoken"
+
     MARKET_MY_OPEN_ORDERS = "/api/v3/market/my-open-orders"
     MARKET_MY_ORDER_HISTORY = "/api/v3/market/my-order-history"
     MARKET_ORDER_INFO = "/api/v3/market/order-info"
+
     CRYPTO_INTERNAL_WITHDRAW = "/api/v3/crypto/internal-withdraw"
     CRYPTO_ADDRESSES = "/api/v3/crypto/addresses"
     CRYPTO_WITHDRAW = "/api/v3/crypto/withdraw"
@@ -107,6 +111,8 @@ class Client(BaseClient):
     ):
         super().__init__(api_key, api_secret, base_url, logging_level)
         self.session = requests.Session()
+
+        # functools pratial
 
     def _guard_errors(self, response: requests.Response):
 
@@ -294,3 +300,103 @@ class Client(BaseClient):
         """
         response = self.__send_request("POST", Endpoints.USER_TRADING_CREDITS)
         return response
+
+    def fetch_wallet(self):
+        """
+        Fetches the user's market wallet.
+
+        Returns:
+            dict: A dictionary containing the response from the API call. The dictionary has two keys:
+                - "error" (int): The error code. 0 indicates success.
+                - "result" (dict): The market wallet data.
+
+        Example:
+            {
+                "error": 0,
+                "result": {
+                    "THB": 1000,
+                    "BTC": 0.1
+                }
+            }
+        """
+        response = self.__send_request("POST", Endpoints.MARKET_WALLET)
+        return response
+
+    def fetch_balances(self):
+        """
+        fetches the user's market balances.
+
+
+        Returns:
+            dict: A dictionary containing the response from the API call. The dictionary has two keys:
+                - "error" (int): The error code. 0 indicates success.
+                - "result" (dict): The market balances data.
+
+        Example:
+            {
+                "error": 0,
+                "result": {
+                    "THB":  {
+                    "available": 188379.27,
+                    "reserved": 0
+                    },
+                    "BTC": {
+                    "available": 8.90397323,
+                    "reserved": 0
+                    },
+                    "ETH": {
+                    "available": 10.1,
+                    "reserved": 0
+                    }
+                }
+            }
+        """
+
+        response = self.__send_request("POST", Endpoints.MARKET_BALANCES)
+        return response
+
+    def create_order_buy(
+        self,
+        symbol: str,
+        amount: float,
+        rate: float,
+        type: str = "limit",
+        client_id: str = "",
+    ):
+        response = self.__send_request(
+            "POST",
+            Endpoints.MARKET_PLACE_BID,
+            body={
+                "sym": symbol,
+                "amt": amount,
+                "rat": rate,
+                "typ": type,
+                "client_id": client_id,
+            },
+        )
+        return response
+
+    def create_order_sell(
+        self,
+        symbol: str,
+        amount: float,
+        rate: float,
+        type: str = "limit",
+        client_id: str = "",
+    ):
+        response = self.__send_request(
+            "POST",
+            Endpoints.MARKET_PLACE_ASK,
+            body={
+                "sym": symbol,
+                "amt": amount,
+                "rat": rate,
+                "typ": type,
+                "client_id": client_id,
+            },
+        )
+        return response
+
+    create_order_market_buy = functools.partialmethod(create_order_buy, type="market")
+
+    create_order_limit_buy = functools.partialmethod(create_order_buy, type="limit")
