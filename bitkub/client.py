@@ -362,7 +362,21 @@ class Client(BaseClient):
         type: str = "limit",
         client_id: str = "",
     ):
+        """
+        Creates a buy order in the Bitkub marketplace.
 
+        Args:
+            symbol (str): The symbol of the cryptocurrency to buy.
+            amount (float): The amount of THB (Thai Baht) to spend on the buy order.
+            rate (float): The rate at which to buy the cryptocurrency.
+            type (str, optional): The type of order. Defaults to "limit".
+            client_id (str, optional): The client ID for the order. Defaults to "".
+
+        Returns:
+            dict: A dictionary containing the response from the API call. The dictionary has two keys:
+                - "error" (int): The error code. 0 indicates success.
+                - "result" (dict): The order data.
+        """
         body = {
             "sym": symbol,
             "amt": amount,  # amount of THB
@@ -381,7 +395,20 @@ class Client(BaseClient):
         type: str = "limit",
         client_id: str = "",
     ):
+        """
+        Creates a sell order for the specified symbol.
 
+        Args:
+            symbol (str): The symbol of the coin to sell.
+            amount (float): The amount of the coin to sell.
+            rate (float): The rate at which to sell the coin.
+            type (str, optional): The type of order. Defaults to "limit".
+            client_id (str, optional): The client ID for the order. Defaults to "".
+
+        Returns:
+            dict: The response from the API.
+
+        """
         body = {
             "sym": symbol,
             "amt": amount,  # amount of coin
@@ -390,4 +417,30 @@ class Client(BaseClient):
             "client_id": client_id,
         }
         response = self.__send_request("POST", Endpoints.MARKET_PLACE_ASK, body=body)
+        return response
+
+    def cancel_order(
+        self, symbol: str = "", id: str = "", side: str = "", hash: str = ""
+    ):
+        """
+        Cancels an order on the Bitkub exchange.
+
+        Args:
+            symbol (str): The trading pair symbol (e.g., "BTC_THB").
+            id (str): The order ID to cancel.
+            side (str): The order side ("buy" or "sell").
+            hash (str): The order hash.
+
+        Returns:
+            dict: The response from the API.
+
+        """
+
+        body = {
+            "sym": symbol,
+            "id": id,
+            "sd": side,
+            "hash": hash,
+        }
+        response = self.__send_request("POST", Endpoints.MARKET_CANCEL_ORDER, body=body)
         return response

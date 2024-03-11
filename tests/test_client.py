@@ -86,6 +86,26 @@ def test_fetch_market_called_endpoint(
 
 def test_create_order_buy(
     mock_client: Client,
+    with_create_order_buy: None,
+):
+    response = mock_client.create_order_buy(symbol="THB_BTC", amount=10, rate=10000000)
+    assert response.get("error") == 0
+    assert response.get("result", {}).get("id") == "54583082"
+    assert response.get("result", {}).get("hash") == "fwQ6dnQWTQMygWR3HsiAatTK1B6"
+
+
+def test_create_order_sell(
+    mock_client: Client,
+    with_create_order_sell: None,
+):
+    response = mock_client.create_order_sell(symbol="THB_BTC", amount=10, rate=10000000)
+    assert response.get("error") == 0
+    assert response.get("result", {}).get("id") == "54583082"
+    assert response.get("result", {}).get("hash") == "fwQ6dnQWTQMygWR3HsiAatTK1B6"
+
+
+def test_create_order_buy_correct_request(
+    mock_client: Client,
     mock_requests: requests_mock.Mocker,
 ):
     matcher = mock_requests.post("/api/v3/market/place-bid", json={"error": 0})
@@ -102,7 +122,7 @@ def test_create_order_buy(
     }
 
 
-def test_create_order_sell(
+def test_create_order_sell_correct_request(
     mock_client: Client,
     mock_requests: requests_mock.Mocker,
 ):
@@ -119,3 +139,12 @@ def test_create_order_sell(
         "typ": "limit",
         "client_id": "",
     }
+
+
+def test_cancel_order_corect_request(
+    mock_client: Client,
+    mock_requests: requests_mock.Mocker,
+):
+    matcher = mock_requests.post("/api/v3/market/cancel-order", json={"error": 0})
+    response = mock_client.cancel_order(hash="fwQ6dn")
+    assert response.get("error") == 0

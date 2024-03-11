@@ -139,3 +139,45 @@ def with_request_user_trade_credit(mock_requests: requests_mock.Mocker):
         "/api/v3/user/trading-credits",
         json={"error": 0, "result": 1000},
     )
+
+
+@pytest.fixture
+def with_create_order_buy(mock_requests: requests_mock.Mocker):
+    mock_requests.post(
+        "/api/v3/market/place-bid",
+        json={
+            "error": 0,
+            "result": {
+                "id": "54583082",
+                "hash": "fwQ6dnQWTQMygWR3HsiAatTK1B6",
+                "typ": "market",
+                "amt": 10,
+                "rat": 0,
+                "fee": 0,
+                "cre": 0,
+                "rec": 0,
+                "ts": "1710179754",
+            },
+        },
+    )
+
+
+@pytest.fixture
+def with_create_order_sell(mock_requests: requests_mock.Mocker):
+    mock_requests.post(
+        "/api/v3/market/place-ask",
+        json={
+            "error": 0,
+            "result": {
+                "id": "54583082",
+                "hash": "fwQ6dnQWTQMygWR3HsiAatTK1B6",
+                "typ": "market",
+                "amt": 10,
+                "rat": 0,
+                "fee": 0,
+                "cre": 0,
+                "rec": 0,
+                "ts": "1710179754",
+            },
+        },
+    )
