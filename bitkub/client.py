@@ -1,4 +1,3 @@
-import functools
 import hashlib
 import hmac
 import json
@@ -363,17 +362,15 @@ class Client(BaseClient):
         type: str = "limit",
         client_id: str = "",
     ):
-        response = self.__send_request(
-            "POST",
-            Endpoints.MARKET_PLACE_BID,
-            body={
-                "sym": symbol,
-                "amt": amount,
-                "rat": rate,
-                "typ": type,
-                "client_id": client_id,
-            },
-        )
+
+        body = {
+            "sym": symbol,
+            "amt": amount,  # amount of THB
+            "rat": rate,
+            "typ": type,
+            "client_id": client_id,
+        }
+        response = self.__send_request("POST", Endpoints.MARKET_PLACE_BID, body=body)
         return response
 
     def create_order_sell(
@@ -384,19 +381,13 @@ class Client(BaseClient):
         type: str = "limit",
         client_id: str = "",
     ):
-        response = self.__send_request(
-            "POST",
-            Endpoints.MARKET_PLACE_ASK,
-            body={
-                "sym": symbol,
-                "amt": amount,
-                "rat": rate,
-                "typ": type,
-                "client_id": client_id,
-            },
-        )
+
+        body = {
+            "sym": symbol,
+            "amt": amount,  # amount of coin
+            "rat": rate,
+            "typ": type,
+            "client_id": client_id,
+        }
+        response = self.__send_request("POST", Endpoints.MARKET_PLACE_ASK, body=body)
         return response
-
-    create_order_market_buy = functools.partialmethod(create_order_buy, type="market")
-
-    create_order_limit_buy = functools.partialmethod(create_order_buy, type="limit")
