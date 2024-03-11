@@ -148,3 +148,16 @@ def test_cancel_order_corect_request(
     matcher = mock_requests.post("/api/v3/market/cancel-order", json={"error": 0})
     response = mock_client.cancel_order(hash="fwQ6dn")
     assert response.get("error") == 0
+    assert matcher.called
+
+
+def test_create_websocket_token(
+    mock_client: Client,
+    mock_requests: requests_mock.Mocker,
+):
+    mock_requests.post(
+        "/api/v3/market/wstoken", json={"error": 0, "result": "token-xxs0dsf0"}
+    )
+    resp = mock_client.create_websocket_token()
+    assert resp.get("error") == 0
+    assert "result" in resp.keys()

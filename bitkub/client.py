@@ -444,3 +444,7 @@ class Client(BaseClient):
         }
         response = self.__send_request("POST", Endpoints.MARKET_CANCEL_ORDER, body=body)
         return response
+
+    def create_websocket_token(self):
+        response = self.__send_request("POST", Endpoints.MARKET_WSTOKEN)
+        return response
