@@ -181,3 +181,62 @@ def with_create_order_sell(mock_requests: requests_mock.Mocker):
             },
         },
     )
+
+
+@pytest.fixture
+def with_fetch_open_order_success(mock_requests: requests_mock.Mocker):
+    mock_requests.get(
+        "/api/v3/market/my-open-orders?sym=THB_BTC",
+        json={
+            "error": 0,
+            "result": [
+                {
+                    "id": "22810019",
+                    "hash": "234234230s",
+                    "side": "sell",
+                    "type": "limit",
+                    "rate": "40",
+                    "fee": "0.1",
+                    "credit": "0.1",
+                    "amount": "1",
+                    "receive": "40",
+                    "parent_id": "0",
+                    "super_id": "0",
+                    "client_id": "",
+                    "ts": 1657464464000,
+                }
+            ],
+        },
+    )
+
+
+@pytest.fixture
+def with_fetch_order_history_success(mock_requests: requests_mock.Mocker):
+    mock_requests.get(
+        "/api/v3/market/my-order-history?sym=THB_BTC",
+        json={
+            "error": 0,
+            "pagination": {"last": 1, "page": 1},
+            "result": [
+                {
+                    "txn_id": "BTCSELL00230234023",
+                    "order_id": "23423423",
+                    "hash": "flskxmsofjsdfos",
+                    "parent_order_id": "0",
+                    "parent_order_hash": "flskxmsofjsdfos112",
+                    "super_order_id": "0",
+                    "super_order_hash": "flskxmsofjsdfos112",
+                    "client_id": "",
+                    "taken_by_me": False,
+                    "is_maker": False,
+                    "side": "sell",
+                    "type": "market",
+                    "rate": "2431000",
+                    "fee": "6.08",
+                    "credit": "0",
+                    "amount": "0.001",
+                    "ts": 1709911962336,
+                }
+            ],
+        },
+    )

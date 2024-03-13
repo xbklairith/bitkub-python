@@ -7,7 +7,9 @@ import time
 import logging
 from typing import Optional
 
+
 import requests
+from urllib.parse import urlencode
 
 from bitkub.exception import BitkubException
 from . import const as c
@@ -87,10 +89,12 @@ class Client(BaseClient):
 
         return data
 
-    def __send_request(self, method, path, body={}):
+    def __send_request(self, method, path, body={}, query_params={}):
 
         ts = str(round(time.time() * 1000))
         str_body = json.dumps(body)
+        if query_params:
+            path = path + "?" + urlencode(query_params)
         payload = [ts, method, path, str_body]
         sig = self._sign("".join(payload))
 
@@ -98,18 +102,21 @@ class Client(BaseClient):
         self.logger.debug("Request: %s %s %s", method, path, str_body)
 
         response = self.session.request(
-            method, self._base_url + path, headers=headers, data=str_body
+            method,
+            self._base_url + path,
+            headers=headers,
+            data=str_body,
         )
         return self._handle_response(response)
 
-    def _send_public_request(self, method, path, body={}, path_params={}):
+    def _send_public_request(self, method, path, body={}, query_params={}):
         str_body = json.dumps(body)
         response = self.session.request(
             method,
             self._base_url + path,
             headers=super()._public_headers(),
             data=str_body,
-            params=path_params,
+            params=query_params,
         )
         return self._handle_response(response)
 
@@ -151,7 +158,7 @@ class Client(BaseClient):
         response = self._send_public_request(
             c.GET,
             c.Endpoints.MARKET_TICKER,
-            path_params={"sym": symbol},
+            query_params={"sym": symbol},
         )
         return response
 
@@ -159,7 +166,7 @@ class Client(BaseClient):
         response = self._send_public_request(
             c.GET,
             c.Endpoints.MARKET_TRADES,
-            path_params={"sym": symbol, "lmt": limit},
+            query_params={"sym": symbol, "lmt": limit},
         )
         return response
 
@@ -167,7 +174,7 @@ class Client(BaseClient):
         response = self._send_public_request(
             c.GET,
             c.Endpoints.MARKET_BIDS,
-            path_params={"sym": symbol, "lmt": limit},
+            query_params={"sym": symbol, "lmt": limit},
         )
         return response
 
@@ -175,7 +182,7 @@ class Client(BaseClient):
         response = self._send_public_request(
             c.GET,
             c.Endpoints.MARKET_ASKS,
-            path_params={"sym": symbol, "lmt": limit},
+            query_params={"sym": symbol, "lmt": limit},
         )
         return response
 
@@ -183,7 +190,7 @@ class Client(BaseClient):
         response = self._send_public_request(
             c.GET,
             c.Endpoints.MARKET_BOOKS,
-            path_params={"sym": symbol, "lmt": limit},
+            query_params={"sym": symbol, "lmt": limit},
         )
         return response
 
@@ -191,7 +198,7 @@ class Client(BaseClient):
         response = self._send_public_request(
             c.GET,
             c.Endpoints.MARKET_DEPTH,
-            path_params={"sym": symbol, "lmt": limit},
+            query_params={"sym": symbol, "lmt": limit},
         )
         return response
 
@@ -219,7 +226,7 @@ class Client(BaseClient):
         response = self._send_public_request(
             c.GET,
             c.Endpoints.TRADING_VIEW_HISTORY,
-            path_params={
+            query_params={
                 "symbol": symbol,
                 "resolution": resolution,
                 "from": from_time,
@@ -407,4 +414,50 @@ class Client(BaseClient):
 
     def create_websocket_token(self):
         response = self.__send_request(c.POST, c.Endpoints.MARKET_WSTOKEN)
+        return response
+
+    def fetch_open_orders(self, symbol: str):
+        response = self.__send_request(
+            c.GET, c.Endpoints.MARKET_MY_OPEN_ORDERS, query_params={"sym": symbol}
+        )
+        return response
+
+    def fetch_order_history(
+        self,
+        symbol: str,
+        page=1,
+        limit=10,
+        start_time: Optional[int] = None,  # timestamp
+        end_time: Optional[int] = None,  # timestamp
+    ):
+
+        params: dict = {"sym": symbol}
+        if page:
+            params["p"] = page
+        if limit:
+            params["lmt"] = limit
+        if start_time:
+            params["start"] = start_time
+        if end_time:
+            params["end"] = end_time
+
+        response = self.__send_request(
+            c.GET, c.Endpoints.MARKET_MY_ORDER_HISTORY, query_params=params
+        )
+        return response
+
+    def fetch_order_info(self, symbol="", id="", side="", hash=""):
+        params = {}
+        if symbol:
+            params["sym"] = symbol
+        if id:
+            params["id"] = id
+        if side:
+            params["sd"] = side
+        if hash:
+            params["hash"] = hash
+
+        response = self.__send_request(
+            c.GET, c.Endpoints.MARKET_ORDER_INFO, query_params=params
+        )
         return response

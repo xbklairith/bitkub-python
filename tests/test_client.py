@@ -161,3 +161,72 @@ def test_create_websocket_token(
     resp = mock_client.create_websocket_token()
     assert resp.get("error") == 0
     assert "result" in resp.keys()
+
+
+def test_fetch_open_orders(mock_client: Client, with_fetch_open_order_success):
+    response = mock_client.fetch_open_orders(symbol="THB_BTC")
+    assert response.get("error") == 0
+    assert len(response.get("result", [])) > 0
+
+
+@pytest.mark.parametrize(
+    "params,expected_uri",
+    [
+        ({"symbol": "THB_BTC", "page": 1, "limit": 10}, "sym=THB_BTC&page=1&limit=10"),
+        ({"symbol": "THB_BTC", "page": 1}, "sym=THB_BTC&page=1"),
+        ({"symbol": "THB_BTC", "limit": 10}, "sym=THB_BTC&limit=10"),
+        ({"symbol": "THB_BTC"}, "sym=THB_BTC"),
+        ({"symbol": "THB_BTC", "start_time": 11123}, "sym=THB_BTC&start_time=11123"),
+        ({"symbol": "THB_BTC", "end_time": 11123}, "sym=THB_BTC&end_time=11123"),
+        (
+            {"symbol": "THB_BTC", "start_time": 111111111, "end_time": 22222222},
+            "sym=THB_BTC&start_time=111111111&end_time=22222222",
+        ),
+    ],
+)
+def test_fetch_order_history_assert_query_params(
+    mock_client: Client, mock_requests: requests_mock.Mocker, params, expected_uri
+):
+    matcher = mock_requests.get(
+        "/api/v3/market/my-order-history",
+        json={
+            "error": 0,
+            "pagination": {"last": 1, "page": 1},
+            "result": [],
+        },
+    )
+    mock_client.fetch_order_history(**params)
+    matcher.last_request.query == expected_uri  # type: ignore
+
+
+def test_fetch_order_history(mock_client: Client, with_fetch_order_history_success):
+    response = mock_client.fetch_order_history(symbol="THB_BTC")
+    assert response.get("error") == 0
+    assert response.get("pagination", {}).get("last") == 1
+    assert len(response.get("result", [])) > 0
+    assert response.get("result", [])[0].get("order_id") == "23423423"
+
+
+@pytest.mark.parametrize(
+    "params,expected_uri",
+    [
+        ({"hash": "23423423"}, "hash=23423423"),
+        (
+            {"symbol": "THB_BTC", "side": "buy", "id": "123423"},
+            "sym=THB_BTC&side=buy&id=123423",
+        ),
+    ],
+)
+def test_fetch_order_info_assert_query_params(
+    mock_client: Client, mock_requests: requests_mock.Mocker, params, expected_uri
+):
+    matcher = mock_requests.get(
+        "/api/v3/market/order-info",
+        json={
+            "error": 0,
+            "result": [],
+        },
+    )
+    mock_client.fetch_order_info(hash="23423423")
+    assert matcher.called
+    assert matcher.last_request.query == "hash=23423423"  # type: ignore
