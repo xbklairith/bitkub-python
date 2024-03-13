@@ -10,49 +10,7 @@ from typing import Optional
 import requests
 
 from bitkub.exception import BitkubException
-from dataclasses import dataclass
-
-
-@dataclass(frozen=True)
-class Endpoints:
-    # public endpoints
-    STATUS = "/api/status"
-    MARKET_SYMBOLS = "/api/market/symbols"
-    MARKET_TICKER = "/api/market/ticker"
-    MARKET_TRADES = "/api/market/trades"
-    MARKET_BIDS = "/api/market/bids"
-    MARKET_ASKS = "/api/market/asks"
-    MARKET_BOOKS = "/api/market/books"
-    MARKET_DEPTH = "/api/market/depth"
-    TRADING_VIEW_HISTORY = "/tradingview/history"
-    SERVER_TIME = "/api/v3/servertime"
-
-    # private endpoints
-
-    USER_LIMITS = "/api/v3/user/limits"
-    USER_TRADING_CREDITS = "/api/v3/user/trading-credits"
-    MARKET_WALLET = "/api/v3/market/wallet"
-    MARKET_BALANCES = "/api/v3/market/balances"
-
-    MARKET_PLACE_BID = "/api/v3/market/place-bid"
-    MARKET_PLACE_ASK = "/api/v3/market/place-ask"
-    MARKET_CANCEL_ORDER = "/api/v3/market/cancel-order"
-    MARKET_WSTOKEN = "/api/v3/market/wstoken"
-
-    MARKET_MY_OPEN_ORDERS = "/api/v3/market/my-open-orders"
-    MARKET_MY_ORDER_HISTORY = "/api/v3/market/my-order-history"
-    MARKET_ORDER_INFO = "/api/v3/market/order-info"
-
-    CRYPTO_INTERNAL_WITHDRAW = "/api/v3/crypto/internal-withdraw"
-    CRYPTO_ADDRESSES = "/api/v3/crypto/addresses"
-    CRYPTO_WITHDRAW = "/api/v3/crypto/withdraw"
-    CRYPTO_DEPOSIT_HISTORY = "/api/v3/crypto/deposit-history"
-    CRYPTO_WITHDRAW_HISTORY = "/api/v3/crypto/withdraw-history"
-    CRYPTO_GENERATE_ADDRESS = "/api/v3/crypto/generate-address"
-    FIAT_ACCOUNTS = "/api/v3/fiat/accounts"
-    FIAT_WITHDRAW = "/api/v3/fiat/withdraw"
-    FIAT_DEPOSIT_HISTORY = "/api/v3/fiat/deposit-history"
-    FIAT_WITHDRAW_HISTORY = "/api/v3/fiat/withdraw-history"
+from . import const as c
 
 
 class BaseClient(ABC):
@@ -162,7 +120,7 @@ class Client(BaseClient):
         Returns:
             The server time response from the API.
         """
-        response = self._send_public_request("GET", Endpoints.SERVER_TIME)
+        response = self._send_public_request(c.GET, c.Endpoints.SERVER_TIME)
         return response
 
     def fetch_status(self):
@@ -172,11 +130,11 @@ class Client(BaseClient):
         Returns:
             The response from the API call.
         """
-        response = self._send_public_request("GET", Endpoints.STATUS)
+        response = self._send_public_request(c.GET, c.Endpoints.STATUS)
         return response
 
     def fetch_symbols(self):
-        response = self._send_public_request("GET", Endpoints.MARKET_SYMBOLS)
+        response = self._send_public_request(c.GET, c.Endpoints.MARKET_SYMBOLS)
         return response
 
     def fetch_tickers(self, symbol: str = ""):
@@ -191,48 +149,48 @@ class Client(BaseClient):
 
         """
         response = self._send_public_request(
-            "GET",
-            Endpoints.MARKET_TICKER,
+            c.GET,
+            c.Endpoints.MARKET_TICKER,
             path_params={"sym": symbol},
         )
         return response
 
     def fetch_trades(self, symbol: str = "", limit: int = 10):
         response = self._send_public_request(
-            "GET",
-            Endpoints.MARKET_TRADES,
+            c.GET,
+            c.Endpoints.MARKET_TRADES,
             path_params={"sym": symbol, "lmt": limit},
         )
         return response
 
     def fetch_bids(self, symbol: str = "", limit: int = 10):
         response = self._send_public_request(
-            "GET",
-            Endpoints.MARKET_BIDS,
+            c.GET,
+            c.Endpoints.MARKET_BIDS,
             path_params={"sym": symbol, "lmt": limit},
         )
         return response
 
     def fetch_asks(self, symbol: str = "", limit: int = 10):
         response = self._send_public_request(
-            "GET",
-            Endpoints.MARKET_ASKS,
+            c.GET,
+            c.Endpoints.MARKET_ASKS,
             path_params={"sym": symbol, "lmt": limit},
         )
         return response
 
     def fetch_order_books(self, symbol: str = "", limit: int = 10):
         response = self._send_public_request(
-            "GET",
-            Endpoints.MARKET_BOOKS,
+            c.GET,
+            c.Endpoints.MARKET_BOOKS,
             path_params={"sym": symbol, "lmt": limit},
         )
         return response
 
     def fetch_depth(self, symbol: str = "", limit: int = 10):
         response = self._send_public_request(
-            "GET",
-            Endpoints.MARKET_DEPTH,
+            c.GET,
+            c.Endpoints.MARKET_DEPTH,
             path_params={"sym": symbol, "lmt": limit},
         )
         return response
@@ -259,8 +217,8 @@ class Client(BaseClient):
         """
 
         response = self._send_public_request(
-            "GET",
-            Endpoints.TRADING_VIEW_HISTORY,
+            c.GET,
+            c.Endpoints.TRADING_VIEW_HISTORY,
             path_params={
                 "symbol": symbol,
                 "resolution": resolution,
@@ -279,7 +237,7 @@ class Client(BaseClient):
                 - "error" (int): The error code. 0 indicates success.
                 - "result" (dict): The trading limits.
         """
-        response = self.__send_request("POST", Endpoints.USER_LIMITS)
+        response = self.__send_request(c.POST, c.Endpoints.USER_LIMITS)
         return response
 
     def fetch_user_trade_credit(self):
@@ -297,7 +255,7 @@ class Client(BaseClient):
                 "result": 1000
             }
         """
-        response = self.__send_request("POST", Endpoints.USER_TRADING_CREDITS)
+        response = self.__send_request(c.POST, c.Endpoints.USER_TRADING_CREDITS)
         return response
 
     def fetch_wallet(self):
@@ -318,7 +276,7 @@ class Client(BaseClient):
                 }
             }
         """
-        response = self.__send_request("POST", Endpoints.MARKET_WALLET)
+        response = self.__send_request(c.POST, c.Endpoints.MARKET_WALLET)
         return response
 
     def fetch_balances(self):
@@ -351,7 +309,7 @@ class Client(BaseClient):
             }
         """
 
-        response = self.__send_request("POST", Endpoints.MARKET_BALANCES)
+        response = self.__send_request(c.POST, c.Endpoints.MARKET_BALANCES)
         return response
 
     def create_order_buy(
@@ -384,7 +342,7 @@ class Client(BaseClient):
             "typ": type,
             "client_id": client_id,
         }
-        response = self.__send_request("POST", Endpoints.MARKET_PLACE_BID, body=body)
+        response = self.__send_request(c.POST, c.Endpoints.MARKET_PLACE_BID, body=body)
         return response
 
     def create_order_sell(
@@ -416,7 +374,7 @@ class Client(BaseClient):
             "typ": type,
             "client_id": client_id,
         }
-        response = self.__send_request("POST", Endpoints.MARKET_PLACE_ASK, body=body)
+        response = self.__send_request(c.POST, c.Endpoints.MARKET_PLACE_ASK, body=body)
         return response
 
     def cancel_order(
@@ -442,9 +400,11 @@ class Client(BaseClient):
             "sd": side,
             "hash": hash,
         }
-        response = self.__send_request("POST", Endpoints.MARKET_CANCEL_ORDER, body=body)
+        response = self.__send_request(
+            c.POST, c.Endpoints.MARKET_CANCEL_ORDER, body=body
+        )
         return response
 
     def create_websocket_token(self):
-        response = self.__send_request("POST", Endpoints.MARKET_WSTOKEN)
+        response = self.__send_request(c.POST, c.Endpoints.MARKET_WSTOKEN)
         return response
