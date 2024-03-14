@@ -240,3 +240,85 @@ def with_fetch_order_history_success(mock_requests: requests_mock.Mocker):
             ],
         },
     )
+
+
+@pytest.fixture
+def with_withdraw_success(mock_requests: requests_mock.Mocker):
+    mock_requests.post(
+        "/api/v3/crypto/withdraw",
+        json={
+            "error": 0,
+            "result": {
+                "txn": "KKKWD0007382474",
+                "adr": "A667355",
+                "mem": "",
+                "cur": "KKK",
+                "net": "KKK",
+                "amt": 10,
+                "fee": 0.02,
+                "ts": 1710443913,
+            },
+        },
+    )
+
+
+@pytest.fixture
+def with_fetch_addresses_success(mock_requests: requests_mock.Mocker):
+    mock_requests.post(
+        "/api/v3/crypto/addresses",
+        json={
+            "error": 0,
+            "result": [
+                {
+                    "currency": "BTC",
+                    "address": "3BtxdKw6XSbneNvmJTLVHS9XfNYM7VAe8k",
+                    "tag": 0,
+                    "time": 1570893867,
+                }
+            ],
+            "pagination": {"page": 1, "last": 1},
+        },
+    )
+
+
+@pytest.fixture
+def with_fetch_withdrawals_success(mock_requests: requests_mock.Mocker):
+    mock_requests.post(
+        "/api/v3/crypto/withdraw-history",
+        json={
+            "error": 0,
+            "result": [
+                {
+                    "txn_id": "XRPWD0000100276",
+                    "hash": "send_internal",
+                    "currency": "XRP",
+                    "amount": "5.75111474",
+                    "fee": 0.01,
+                    "address": "rpXTzCuXtjiPDFysxq8uNmtZBe9Xo97JbW",
+                    "status": "complete",
+                    "time": 1570893493,
+                }
+            ],
+            "pagination": {"page": 1, "last": 1},
+        },
+    )
+
+
+@pytest.fixture
+def with_fetch_deposits_success(mock_requests: requests_mock.Mocker):
+    mock_requests.post(
+        "/api/v3/crypto/deposit-history",
+        json={
+            "error": 0,
+            "result": [
+                {
+                    "txn_id": "THBDP0000012345",
+                    "currency": "THB",
+                    "amount": 5000.55,
+                    "status": "complete",
+                    "time": 1570893867,
+                }
+            ],
+            "pagination": {"page": 1, "last": 1},
+        },
+    )

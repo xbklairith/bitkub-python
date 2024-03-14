@@ -230,3 +230,53 @@ def test_fetch_order_info_assert_query_params(
     mock_client.fetch_order_info(hash="23423423")
     assert matcher.called
     assert matcher.last_request.query == "hash=23423423"  # type: ignore
+
+
+def test_withdraw(mock_client: Client, with_withdraw_success):
+    response = mock_client.withdraw(
+        currency="BTC",
+        amount=10,
+        address="1Ax20320423l23423",
+        network="BTC",
+    )
+    assert response.get("error") == 0
+    assert response.get("result", {}).get("txn") == "KKKWD0007382474"
+
+
+def test_withdraw_memo(mock_client: Client, with_withdraw_success):
+    response = mock_client.withdraw(
+        currency="XRP",
+        amount=10,
+        address="1Ax20320423l23423",
+        network="XRP",
+        memo="123123",
+    )
+    assert response.get("error") == 0
+    assert response.get("result", {}).get("txn") == "KKKWD0007382474"
+
+
+def test_fetch_addresses(
+    mock_client: Client,
+    with_fetch_addresses_success,
+):
+    response = mock_client.fetch_addresses()
+    assert response.get("error") == 0
+    assert len(response.get("result", [])) > 0
+
+
+def test_fetch_withdrawals(
+    mock_client: Client,
+    with_fetch_withdrawals_success,
+):
+    response = mock_client.fetch_withdrawals()
+    assert response.get("error") == 0
+    assert len(response.get("result", [])) > 0
+
+
+def test_fetch_deposits(
+    mock_client: Client,
+    with_fetch_deposits_success,
+):
+    response = mock_client.fetch_deposits()
+    assert response.get("error") == 0
+    assert len(response.get("result", [])) > 0

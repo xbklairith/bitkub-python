@@ -16,6 +16,7 @@ from . import const as c
 
 
 class BaseClient(ABC):
+
     def __init__(
         self,
         api_key: Optional[str] = "",
@@ -459,5 +460,60 @@ class Client(BaseClient):
 
         response = self.__send_request(
             c.GET, c.Endpoints.MARKET_ORDER_INFO, query_params=params
+        )
+        return response
+
+    def withdraw(
+        self,
+        currency: str,
+        amount: float,
+        address: str,
+        network: str,
+        memo: Optional[str] = None,
+    ):
+        """
+        Withdraws a specified amount of cryptocurrency to the given address.
+
+        Args:
+            currency (str): The currency symbol of the cryptocurrency to withdraw.
+            amount (float): The amount of cryptocurrency to withdraw.
+            address (str): The destination address
+            network (str): The network or blockchain on which the cryptocurrency operates.
+            memo (str): The memo or tag associated with the withdrawal (if applicable).
+
+        Returns:
+            dict: The response from the API containing information about the withdrawal.
+
+        """
+
+        body = {
+            "cur": currency,
+            "amt": amount,
+            "adr": address,
+            "mem": memo,
+            "net": network,
+        }
+
+        response = self.__send_request(c.POST, c.Endpoints.CRYPTO_WITHDRAW, body=body)
+        return response
+
+    def fetch_addresses(self):
+        """
+        Fetches the deposit addresses for all cryptocurrencies.
+        """
+        response = self.__send_request(c.POST, c.Endpoints.CRYPTO_ADDRESSES)
+        return response
+
+    def fetch_deposits(self, page=1, limit=10):
+        params = {"p": page, "lmt": limit}
+        response = self.__send_request(
+            c.POST, c.Endpoints.CRYPTO_DEPOSIT_HISTORY, query_params=params
+        )
+        return response
+
+    def fetch_withdrawals(self, page=1, limit=10):
+        params = {"p": page, "lmt": limit}
+        response = self.__send_request(
+            c.POST, c.Endpoints.CRYPTO_WITHDRAW_HISTORY, query_params=params
         )
         return response
