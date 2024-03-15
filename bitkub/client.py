@@ -501,7 +501,7 @@ class Client(BaseClient):
         """
         Fetches the deposit addresses for all cryptocurrencies.
 
-        Example:
+        Example Response:
         .. code-block:: json
         {
             "error": 0,
@@ -526,8 +526,7 @@ class Client(BaseClient):
         """
         Fetches the deposit history for the user.
 
-        Example:
-
+        Example Response:
         .. code-block:: json
         {
             "error": 0,
@@ -560,6 +559,7 @@ class Client(BaseClient):
         """
         Fetches the withdrawal history for the user.
 
+        Example Response:
         .. code-block:: json
         {
             "error": 0,
@@ -592,7 +592,7 @@ class Client(BaseClient):
         """
         Fetches the fiat accounts associated with the client.
 
-        Example:
+        Example Response:
         .. code-block:: json
         {
             "error": 0,
@@ -627,4 +627,63 @@ class Client(BaseClient):
         """
         body = {"amt": amount, "id": bank_id}
         response = self.__send_request(c.POST, c.Endpoints.FIAT_WITHDRAW, body=body)
+        return response
+
+    def fetch_fiat_deposits(self, page=1, limit=10):
+        """
+        Fetches the fiat deposit history for the user.
+
+        Example Response:
+        .. code-block:: json
+        {
+            "error": 0,
+            "result": [
+                {
+                    "txn_id": "THBDP0000012345",
+                    "currency": "THB",
+                    "amount": 5000.55,
+                    "status": "complete",
+                    "time": 1570893867
+                }
+            ],
+            "pagination": {
+                "page": 1,
+                "last": 1
+            }
+        }
+        """
+        params = {"p": page, "lmt": limit}
+        response = self.__send_request(
+            c.POST, c.Endpoints.FIAT_DEPOSIT_HISTORY, query_params=params
+        )
+        return response
+
+    def fetch_fiat_withdrawals(self, page=1, limit=10):
+        """
+        Fetches the fiat withdrawal history for the user.
+
+        Example Response:
+        .. code-block:: json
+        {
+            "error":0,
+            "result": [
+                {
+                    "txn_id": "THBWD0000012345",
+                    "currency": "THB",
+                    "amount": "21",
+                    "fee": 20,
+                    "status": "complete",
+                    "time": 1570893493
+                }
+            ],
+            "pagination": {
+                "page": 1,
+                "last": 1
+            }
+        }
+        """
+        params = {"p": page, "lmt": limit}
+        response = self.__send_request(
+            c.POST, c.Endpoints.FIAT_WITHDRAW_HISTORY, query_params=params
+        )
         return response

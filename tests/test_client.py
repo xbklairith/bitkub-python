@@ -300,3 +300,25 @@ def test_withdraw_fiat(
     response = mock_client.withdraw_fiat("7262109099", 100)
     assert response.get("error") == 0
     assert response.get("result", {}).get("acc") == "7262109099"
+
+
+def test_fetch_fiat_withdrawals(
+    mock_client: Client,
+    with_fetch_fiat_withdrawals_success,
+):
+    response = mock_client.fetch_fiat_withdrawals()
+    assert response.get("error") == 0
+    assert len(response.get("result", [])) > 0
+    assert response.get("result", [])[0].get("txn_id") == "THBWD0000012345"
+    assert response.get("result", [])[0].get("amount") == "21"
+
+
+def test_fetch_fiat_deposits(
+    mock_client: Client,
+    with_fetch_fiat_deposits_success,
+):
+    response = mock_client.fetch_fiat_deposits()
+    assert response.get("error") == 0
+    assert len(response.get("result", [])) > 0
+    assert response.get("result", [])[0].get("txn_id") == "THBDP0000012345"
+    assert response.get("result", [])[0].get("amount") == 5000.55
