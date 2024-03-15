@@ -1,14 +1,14 @@
 [project]
-name="bitkub-python"
-version="0.0.1"
-authors=[{name="Praphan Klairith", email="p.klairith@gmail.com"}]
-description="A Python wrapper for Bitkub API"
-requires-python = ">=3.7"
+name = "bitkub-python"
+version = "0.1.0"
+authors = [{ name = "Praphan Klairith", email = "p.klairith@gmail.com" }]
+description = "A Python library for Bitkub API"
+requires-python = ">=3.8"
 readme = "README.md"
-classifiers=[
+classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent"
+    "Operating System :: OS Independent",
 ]
 
 [project.urls]
