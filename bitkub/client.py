@@ -500,11 +500,56 @@ class Client(BaseClient):
     def fetch_addresses(self):
         """
         Fetches the deposit addresses for all cryptocurrencies.
+
+        Example:
+        .. code-block:: json
+        {
+            "error": 0,
+            "result": [
+                {
+                    "currency": "BTC",
+                    "address": "3BtxdKw6XSbneNvmJTLVHS9XfNYM7VAe8k",
+                    "tag": 0,
+                    "time": 1570893867
+                }
+            ],
+            "pagination": {
+                "page": 1,
+                "last": 1
+            }
+        }
         """
         response = self.__send_request(c.POST, c.Endpoints.CRYPTO_ADDRESSES)
         return response
 
     def fetch_deposits(self, page=1, limit=10):
+        """
+        Fetches the deposit history for the user.
+
+        Example:
+
+        .. code-block:: json
+        {
+            "error": 0,
+            "result": [
+                {
+                    "hash": "XRPWD0000100276",
+                    "currency": "XRP",
+                    "amount": 5.75111474,
+                    "from_address": "sender address",
+                    "to_address": "recipient address",
+                    "confirmations": 1,
+                    "status": "complete",
+                    "time": 1570893867
+                }
+            ],
+            "pagination": {
+                "page": 1,
+                "last": 1
+            }
+        }
+        """
+
         params = {"p": page, "lmt": limit}
         response = self.__send_request(
             c.POST, c.Endpoints.CRYPTO_DEPOSIT_HISTORY, query_params=params
@@ -512,8 +557,74 @@ class Client(BaseClient):
         return response
 
     def fetch_withdrawals(self, page=1, limit=10):
+        """
+        Fetches the withdrawal history for the user.
+
+        .. code-block:: json
+        {
+            "error": 0,
+            "result": [
+                {
+                    "txn_id": "XRPWD0000100276",
+                    "hash": "send_internal",
+                    "currency": "XRP",
+                    "amount": "5.75111474",
+                    "fee": 0.01,
+                    "address": "rpXTzCuXtjiPDFysxq8uNmtZBe9Xo97JbW",
+                    "status": "complete",
+                    "time": 1570893493
+                }
+            ],
+            "pagination": {
+                "page": 1,
+                "last": 1
+            }
+        }
+        """
+
         params = {"p": page, "lmt": limit}
         response = self.__send_request(
             c.POST, c.Endpoints.CRYPTO_WITHDRAW_HISTORY, query_params=params
         )
+        return response
+
+    def fetch_fiat_accounts(self):
+        """
+        Fetches the fiat accounts associated with the client.
+
+        Example:
+        .. code-block:: json
+        {
+            "error": 0,
+            "result": [
+                {
+                    "id": "7262109099",
+                    "bank": "Kasikorn Bank",
+                    "name": "Somsak",
+                    "time": 1570893867
+                }
+            ],
+            "pagination": {
+                "page": 1,
+                "last": 1
+            }
+        }
+        """
+        response = self.__send_request(c.POST, c.Endpoints.FIAT_ACCOUNTS)
+        return response
+
+    def withdraw_fiat(self, bank_id: str, amount: float):
+        """
+        Withdraws fiat currency from the Bitkub exchange.
+
+        Args:
+            bank_id (str): The ID of the bank account to withdraw to.
+            amount (float): The amount of fiat currency to withdraw.
+
+        Returns:
+            dict: The response from the API.
+
+        """
+        body = {"amt": amount, "id": bank_id}
+        response = self.__send_request(c.POST, c.Endpoints.FIAT_WITHDRAW, body=body)
         return response

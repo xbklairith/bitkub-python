@@ -322,3 +322,41 @@ def with_fetch_deposits_success(mock_requests: requests_mock.Mocker):
             "pagination": {"page": 1, "last": 1},
         },
     )
+
+
+@pytest.fixture
+def with_fetch_fiat_accounts_success(mock_requests: requests_mock.Mocker):
+    mock_requests.post(
+        "/api/v3/fiat/accounts",
+        json={
+            "error": 0,
+            "result": [
+                {
+                    "id": "7262109099",
+                    "bank": "Kasikorn Bank",
+                    "name": "Somsak",
+                    "time": 1570893867,
+                }
+            ],
+            "pagination": {"page": 1, "last": 1},
+        },
+    )
+
+
+@pytest.fixture
+def with_withdraw_fiat_success(mock_requests: requests_mock.Mocker):
+    mock_requests.post(
+        "/api/v3/fiat/withdraw",
+        json={
+            "error": 0,
+            "result": {
+                "txn": "THBWD0000012345",
+                "acc": "7262109099",
+                "cur": "THB",
+                "amt": 21,
+                "fee": 20,
+                "rec": 1,
+                "ts": 1569999999,
+            },
+        },
+    )

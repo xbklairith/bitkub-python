@@ -280,3 +280,23 @@ def test_fetch_deposits(
     response = mock_client.fetch_deposits()
     assert response.get("error") == 0
     assert len(response.get("result", [])) > 0
+
+
+def test_fetch_fiat_accounts(
+    mock_client: Client,
+    with_fetch_fiat_accounts_success,
+):
+
+    response = mock_client.fetch_fiat_accounts()
+    assert response.get("error") == 0
+    assert len(response.get("result", [])) > 0
+    assert response.get("result", [])[0].get("id") == "7262109099"
+
+
+def test_withdraw_fiat(
+    mock_client: Client,
+    with_withdraw_fiat_success,
+):
+    response = mock_client.withdraw_fiat("7262109099", 100)
+    assert response.get("error") == 0
+    assert response.get("result", {}).get("acc") == "7262109099"
