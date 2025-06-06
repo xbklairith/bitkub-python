@@ -1,29 +1,33 @@
 import hashlib
 import hmac
 import json
-from abc import ABC
-import time
-
 import logging
-from typing import Optional
-
-
-import requests
+import time
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Optional
 from urllib.parse import urlencode
 
-from bitkub.exception import BitkubException
+import requests
+
+from bitkub.exception import BitkubAPIException, BitkubException
+from bitkub.models import (
+    ServerTimeResponse,
+    StatusResponse,
+    SymbolsResponse,
+    TickerResponse,
+)
+
 from . import const as c
 
 
 class BaseClient(ABC):
-
     def __init__(
         self,
         api_key: Optional[str] = "",
         api_secret: Optional[str] = "",
-        base_url="https://api.bitkub.com",
-        logging_level=logging.INFO,
-    ):
+        base_url: str = "https://api.bitkub.com",
+        logging_level: int = logging.INFO,
+    ) -> None:
         self._base_url = base_url
         self._api_key = api_key
         self._api_secret = api_secret
@@ -32,10 +36,10 @@ class BaseClient(ABC):
         self.logger.setLevel(logging_level)
         self.logger.addHandler(logging.NullHandler())
 
-    def _json_encode(self, data):
+    def _json_encode(self, data: Dict[str, Any]) -> str:
         return json.dumps(data)
 
-    def _sign(self, payload_string: str):
+    def _sign(self, payload_string: str) -> str:
         if not self._api_secret:
             raise BitkubException("API secret not set")
         return hmac.new(
@@ -44,53 +48,91 @@ class BaseClient(ABC):
             hashlib.sha256,
         ).hexdigest()
 
-    def _private_headers(self, ts, sig) -> dict:
+    def _private_headers(self, ts: str, sig: str) -> Dict[str, str]:
         return {
             "Accept": "application/json",
             "Content-Type": "application/json",
             "X-BTK-TIMESTAMP": ts,
             "X-BTK-SIGN": sig,
-            "X-BTK-APIKEY": self._api_key,
+            "X-BTK-APIKEY": self._api_key or "",
         }
 
-    def _public_headers(self) -> dict:
+    def _public_headers(self) -> Dict[str, str]:
         return {
             "Accept": "application/json",
             "Content-Type": "application/json",
         }
 
+    @abstractmethod
+    def _send_request(self, method: str, path: str, **kwargs: Any) -> Dict[str, Any]:
+        """Abstract method for sending requests - must be implemented by subclasses."""
+        pass
+
 
 class Client(BaseClient):
-
     def __init__(
         self,
         api_key: Optional[str] = "",
         api_secret: Optional[str] = "",
-        base_url="https://api.bitkub.com",
-        logging_level=logging.INFO,
-    ):
+        base_url: str = "https://api.bitkub.com",
+        logging_level: int = logging.INFO,
+    ) -> None:
         super().__init__(api_key, api_secret, base_url, logging_level)
         self.session = requests.Session()
 
-        # functools pratial
+    def _send_request(self, method: str, path: str, **kwargs: Any) -> Dict[str, Any]:
+        """Implementation of abstract method for sending requests."""
+        authenticated = kwargs.get("authenticated", True)
+        body = kwargs.get("body", {})
+        query_params = kwargs.get("query_params", {})
+        return self._send_api_request(method, path, body, query_params, authenticated)
 
-    def _guard_errors(self, response: requests.Response):
-
+    def _guard_errors(self, response: requests.Response) -> None:
+        """Check response status and raise exception if not successful."""
         if response.status_code < 200 or response.status_code >= 300:
-            raise BitkubException(f"{response.status_code} : {response.text} ")
+            raise BitkubException(f"{response.status_code} : {response.text}")
 
-    def _handle_response(self, response: requests.Response) -> dict:
+    def _handle_response(self, response: requests.Response) -> Dict[str, Any]:
+        """Handle response, check for errors and parse JSON."""
         self._guard_errors(response)
 
         try:
             data = response.json()
+        except ValueError as err:
+            raise BitkubException("Invalid JSON response") from err
 
-        except ValueError:
-            raise BitkubException("Invalid JSON response")
+        # Check for API errors in the response
+        if isinstance(data, dict) and "error" in data:
+            error_code = data.get("error")
+            if error_code and error_code != 0:
+                error_msg = data.get("message", f"API Error {error_code}")
+                raise BitkubAPIException(error_msg, error_code)
 
-        return data
+        return data  # type: ignore[no-any-return]
 
-    def __send_request(self, method, path, body={}, query_params={}):
+    def _send_api_request(
+        self,
+        method: str,
+        path: str,
+        body: Optional[Dict[str, Any]] = None,
+        query_params: Optional[Dict[str, Any]] = None,
+        authenticated: bool = True,
+    ) -> Dict[str, Any]:
+        """Unified method to send API requests (both public and private)."""
+        if body is None:
+            body = {}
+        if query_params is None:
+            query_params = {}
+
+        if authenticated:
+            return self._send_private_request(method, path, body, query_params)
+        else:
+            return self._send_public_request(method, path, body, query_params)
+
+    def _send_private_request(
+        self, method: str, path: str, body: Dict[str, Any], query_params: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Send authenticated request to private API endpoints."""
 
         ts = str(round(time.time() * 1000))
         str_body = json.dumps(body)
@@ -100,7 +142,7 @@ class Client(BaseClient):
         sig = self._sign("".join(payload))
 
         headers = self._private_headers(ts, sig)
-        self.logger.debug("Request: %s %s %s", method, path, str_body)
+        self.logger.debug("Private API Request: %s %s %s", method, path, str_body)
 
         response = self.session.request(
             method,
@@ -110,96 +152,143 @@ class Client(BaseClient):
         )
         return self._handle_response(response)
 
-    def _send_public_request(self, method, path, body={}, query_params={}):
+    def _send_public_request(
+        self, method: str, path: str, body: Dict[str, Any], query_params: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Send unauthenticated request to public API endpoints."""
         str_body = json.dumps(body)
+        self.logger.debug("Public API Request: %s %s %s", method, path, str_body)
+
         response = self.session.request(
             method,
             self._base_url + path,
-            headers=super()._public_headers(),
+            headers=self._public_headers(),
             data=str_body,
             params=query_params,
         )
         return self._handle_response(response)
 
-    def fetch_server_time(self):
+    def __send_request(
+        self,
+        method: str,
+        path: str,
+        body: Optional[Dict[str, Any]] = None,
+        query_params: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Legacy private method - kept for backward compatibility."""
+        return self._send_private_request(method, path, body or {}, query_params or {})
+
+    def fetch_server_time(self) -> Dict[str, Any]:
         """
         Fetches the server time from the Bitkub API.
 
         Returns:
             The server time response from the API.
         """
-        response = self._send_public_request(c.GET, c.Endpoints.SERVER_TIME)
+        response = self._send_public_request(c.GET, c.Endpoints.SERVER_TIME, {}, {})
         return response
 
-    def fetch_status(self):
+    def fetch_server_time_typed(self) -> ServerTimeResponse:
+        """Fetch server time with typed response."""
+        response = self.fetch_server_time()
+        return ServerTimeResponse.from_dict(response)
+
+    def fetch_status(self) -> Dict[str, Any]:
         """
         Fetches the status of the Bitkub API.
 
         Returns:
             The response from the API call.
         """
-        response = self._send_public_request(c.GET, c.Endpoints.STATUS)
+        response = self._send_public_request(c.GET, c.Endpoints.STATUS, {}, {})
         return response
 
-    def fetch_symbols(self):
-        response = self._send_public_request(c.GET, c.Endpoints.MARKET_SYMBOLS)
+    def fetch_status_typed(self) -> StatusResponse:
+        """Fetch API status with typed response."""
+        response = self.fetch_status()
+        return StatusResponse.from_dict(response)
+
+    def fetch_symbols(self) -> Dict[str, Any]:
+        """Fetch available trading symbols."""
+        response = self._send_public_request(c.GET, c.Endpoints.MARKET_SYMBOLS, {}, {})
         return response
 
-    def fetch_tickers(self, symbol: str = ""):
+    def fetch_symbols_typed(self) -> SymbolsResponse:
+        """Fetch available trading symbols with typed response."""
+        response = self.fetch_symbols()
+        return SymbolsResponse.from_dict(response)
+
+    def fetch_tickers(self, symbol: Optional[str] = None) -> Dict[str, Any]:
         """
         Fetches tickers for a specific symbol or all symbols.
 
         Args:
-            symbol (str, optional): The symbol for which to fetch tickers. Defaults to "" (empty string) to fetch tickers for all symbols.
+            symbol: The symbol for which to fetch tickers. None to fetch all symbols.
 
         Returns:
             dict: A dictionary containing the tickers data.
-
         """
+        params = {"sym": symbol} if symbol else {}
         response = self._send_public_request(
             c.GET,
             c.Endpoints.MARKET_TICKER,
-            query_params={"sym": symbol},
+            {},
+            params,
         )
         return response
 
-    def fetch_trades(self, symbol: str = "", limit: int = 10):
+    def fetch_tickers_typed(self, symbol: Optional[str] = None) -> TickerResponse:
+        """Fetch tickers with typed response."""
+        response = self.fetch_tickers(symbol)
+        return TickerResponse.from_dict(response)
+
+    def fetch_trades(self, symbol: str = "", limit: int = 10) -> Dict[str, Any]:
+        """Fetch recent trades for a symbol."""
         response = self._send_public_request(
             c.GET,
             c.Endpoints.MARKET_TRADES,
-            query_params={"sym": symbol, "lmt": limit},
+            {},
+            {"sym": symbol, "lmt": limit},
         )
         return response
 
-    def fetch_bids(self, symbol: str = "", limit: int = 10):
+    def fetch_bids(self, symbol: str = "", limit: int = 10) -> Dict[str, Any]:
+        """Fetch bid orders for a symbol."""
         response = self._send_public_request(
             c.GET,
             c.Endpoints.MARKET_BIDS,
-            query_params={"sym": symbol, "lmt": limit},
+            {},
+            {"sym": symbol, "lmt": limit},
         )
         return response
 
-    def fetch_asks(self, symbol: str = "", limit: int = 10):
+    def fetch_asks(self, symbol: str = "", limit: int = 10) -> Dict[str, Any]:
+        """Fetch ask orders for a symbol."""
         response = self._send_public_request(
             c.GET,
             c.Endpoints.MARKET_ASKS,
-            query_params={"sym": symbol, "lmt": limit},
+            {},
+            {"sym": symbol, "lmt": limit},
         )
         return response
 
-    def fetch_order_books(self, symbol: str = "", limit: int = 10):
+    def fetch_order_books(self, symbol: str = "", limit: int = 10) -> Dict[str, Any]:
+        """Fetch order book for a symbol."""
         response = self._send_public_request(
             c.GET,
             c.Endpoints.MARKET_BOOKS,
-            query_params={"sym": symbol, "lmt": limit},
+            {},
+            {"sym": symbol, "lmt": limit},
         )
         return response
 
-    def fetch_depth(self, symbol: str = "", limit: int = 10):
+    def fetch_depth(self, symbol: str = "", limit: int = 10) -> Dict[str, Any]:
+        """Fetch market depth for a symbol."""
         response = self._send_public_request(
             c.GET,
             c.Endpoints.MARKET_DEPTH,
-            query_params={"sym": symbol, "lmt": limit},
+            {},
+            {"sym": symbol, "lmt": limit},
         )
         return response
 
@@ -209,7 +298,7 @@ class Client(BaseClient):
         resolution: str = "",
         from_time: int = 0,
         to_time: int = 0,
-    ):
+    ) -> Dict[str, Any]:
         """
         Fetches trading view history for a given symbol.
 
@@ -223,11 +312,11 @@ class Client(BaseClient):
             dict: The trading view history data.
 
         """
-
         response = self._send_public_request(
             c.GET,
             c.Endpoints.TRADING_VIEW_HISTORY,
-            query_params={
+            {},
+            {
                 "symbol": symbol,
                 "resolution": resolution,
                 "from": from_time,
@@ -236,7 +325,7 @@ class Client(BaseClient):
         )
         return response
 
-    def fetch_user_limits(self):
+    def fetch_user_limits(self) -> Dict[str, Any]:
         """
         Fetches the user's trading limits.
 
@@ -248,7 +337,7 @@ class Client(BaseClient):
         response = self.__send_request(c.POST, c.Endpoints.USER_LIMITS)
         return response
 
-    def fetch_user_trade_credit(self):
+    def fetch_user_trade_credit(self) -> Dict[str, Any]:
         """
         Fetches the user's trade credit.
 
@@ -266,7 +355,7 @@ class Client(BaseClient):
         response = self.__send_request(c.POST, c.Endpoints.USER_TRADING_CREDITS)
         return response
 
-    def fetch_wallet(self):
+    def fetch_wallet(self) -> Dict[str, Any]:
         """
         Fetches the user's market wallet.
 
@@ -287,10 +376,9 @@ class Client(BaseClient):
         response = self.__send_request(c.POST, c.Endpoints.MARKET_WALLET)
         return response
 
-    def fetch_balances(self):
+    def fetch_balances(self) -> Dict[str, Any]:
         """
-        fetches the user's market balances.
-
+        Fetches the user's market balances.
 
         Returns:
             dict: A dictionary containing the response from the API call. The dictionary has two keys:
@@ -316,7 +404,6 @@ class Client(BaseClient):
                 }
             }
         """
-
         response = self.__send_request(c.POST, c.Endpoints.MARKET_BALANCES)
         return response
 
@@ -327,7 +414,7 @@ class Client(BaseClient):
         rate: float,
         type: str = "limit",
         client_id: str = "",
-    ):
+    ) -> Dict[str, Any]:
         """
         Creates a buy order in the Bitkub marketplace.
 
@@ -360,7 +447,7 @@ class Client(BaseClient):
         rate: float,
         type: str = "limit",
         client_id: str = "",
-    ):
+    ) -> Dict[str, Any]:
         """
         Creates a sell order for the specified symbol.
 
@@ -387,7 +474,7 @@ class Client(BaseClient):
 
     def cancel_order(
         self, symbol: str = "", id: str = "", side: str = "", hash: str = ""
-    ):
+    ) -> Dict[str, Any]:
         """
         Cancels an order on the Bitkub exchange.
 
@@ -413,11 +500,13 @@ class Client(BaseClient):
         )
         return response
 
-    def create_websocket_token(self):
+    def create_websocket_token(self) -> Dict[str, Any]:
+        """Create a websocket token for real-time data."""
         response = self.__send_request(c.POST, c.Endpoints.MARKET_WSTOKEN)
         return response
 
-    def fetch_open_orders(self, symbol: str):
+    def fetch_open_orders(self, symbol: str) -> Dict[str, Any]:
+        """Fetch open orders for a symbol."""
         response = self.__send_request(
             c.GET, c.Endpoints.MARKET_MY_OPEN_ORDERS, query_params={"sym": symbol}
         )
@@ -426,13 +515,13 @@ class Client(BaseClient):
     def fetch_order_history(
         self,
         symbol: str,
-        page=1,
-        limit=10,
-        start_time: Optional[int] = None,  # timestamp
-        end_time: Optional[int] = None,  # timestamp
-    ):
-
-        params: dict = {"sym": symbol}
+        page: int = 1,
+        limit: int = 10,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Fetch order history for a symbol with optional pagination and time filters."""
+        params: Dict[str, Any] = {"sym": symbol}
         if page:
             params["p"] = page
         if limit:
@@ -447,8 +536,11 @@ class Client(BaseClient):
         )
         return response
 
-    def fetch_order_info(self, symbol="", id="", side="", hash=""):
-        params = {}
+    def fetch_order_info(
+        self, symbol: str = "", id: str = "", side: str = "", hash: str = ""
+    ) -> Dict[str, Any]:
+        """Fetch information about a specific order."""
+        params: Dict[str, Any] = {}
         if symbol:
             params["sym"] = symbol
         if id:
@@ -470,7 +562,7 @@ class Client(BaseClient):
         address: str,
         network: str,
         memo: Optional[str] = None,
-    ):
+    ) -> Dict[str, Any]:
         """
         Withdraws a specified amount of cryptocurrency to the given address.
 
@@ -497,7 +589,7 @@ class Client(BaseClient):
         response = self.__send_request(c.POST, c.Endpoints.CRYPTO_WITHDRAW, body=body)
         return response
 
-    def fetch_addresses(self):
+    def fetch_addresses(self) -> Dict[str, Any]:
         """
         Fetches the deposit addresses for all cryptocurrencies.
 
@@ -522,7 +614,7 @@ class Client(BaseClient):
         response = self.__send_request(c.POST, c.Endpoints.CRYPTO_ADDRESSES)
         return response
 
-    def fetch_deposits(self, page=1, limit=10):
+    def fetch_deposits(self, page: int = 1, limit: int = 10) -> Dict[str, Any]:
         """
         Fetches the deposit history for the user.
 
@@ -555,7 +647,7 @@ class Client(BaseClient):
         )
         return response
 
-    def fetch_withdrawals(self, page=1, limit=10):
+    def fetch_withdrawals(self, page: int = 1, limit: int = 10) -> Dict[str, Any]:
         """
         Fetches the withdrawal history for the user.
 
@@ -588,7 +680,7 @@ class Client(BaseClient):
         )
         return response
 
-    def fetch_fiat_accounts(self):
+    def fetch_fiat_accounts(self) -> Dict[str, Any]:
         """
         Fetches the fiat accounts associated with the client.
 
@@ -613,7 +705,7 @@ class Client(BaseClient):
         response = self.__send_request(c.POST, c.Endpoints.FIAT_ACCOUNTS)
         return response
 
-    def withdraw_fiat(self, bank_id: str, amount: float):
+    def withdraw_fiat(self, bank_id: str, amount: float) -> Dict[str, Any]:
         """
         Withdraws fiat currency from the Bitkub exchange.
 
@@ -629,7 +721,7 @@ class Client(BaseClient):
         response = self.__send_request(c.POST, c.Endpoints.FIAT_WITHDRAW, body=body)
         return response
 
-    def fetch_fiat_deposits(self, page=1, limit=10):
+    def fetch_fiat_deposits(self, page: int = 1, limit: int = 10) -> Dict[str, Any]:
         """
         Fetches the fiat deposit history for the user.
 
@@ -658,7 +750,7 @@ class Client(BaseClient):
         )
         return response
 
-    def fetch_fiat_withdrawals(self, page=1, limit=10):
+    def fetch_fiat_withdrawals(self, page: int = 1, limit: int = 10) -> Dict[str, Any]:
         """
         Fetches the fiat withdrawal history for the user.
 
@@ -686,4 +778,107 @@ class Client(BaseClient):
         response = self.__send_request(
             c.POST, c.Endpoints.FIAT_WITHDRAW_HISTORY, query_params=params
         )
+        return response
+
+    # V4 Crypto API methods
+    def fetch_crypto_addresses_v4(
+        self,
+        page: Optional[int] = None,
+        limit: Optional[int] = None,
+        symbol: Optional[str] = None,
+        network: Optional[str] = None,
+        memo: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Fetch crypto addresses using v4 API."""
+        params: Dict[str, Any] = {}
+        if page is not None:
+            params["page"] = page
+        if limit is not None:
+            params["limit"] = limit
+        if symbol:
+            params["symbol"] = symbol
+        if network:
+            params["network"] = network
+        if memo:
+            params["memo"] = memo
+
+        response = self._send_api_request(
+            c.GET, c.Endpoints.CRYPTO_V4_ADDRESSES, query_params=params
+        )
+        return response
+
+    def generate_crypto_address_v4(self, symbol: str, network: str) -> Dict[str, Any]:
+        """Generate new crypto address using v4 API."""
+        body = {"symbol": symbol, "network": network}
+        response = self._send_api_request(
+            c.POST, c.Endpoints.CRYPTO_V4_ADDRESSES, body=body
+        )
+        return response
+
+    def fetch_crypto_deposits_v4(
+        self,
+        page: Optional[int] = None,
+        limit: Optional[int] = None,
+        symbol: Optional[str] = None,
+        status: Optional[str] = None,
+        created_start: Optional[int] = None,
+        created_end: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Fetch crypto deposit history using v4 API."""
+        params: Dict[str, Any] = {}
+        if page is not None:
+            params["page"] = page
+        if limit is not None:
+            params["limit"] = limit
+        if symbol:
+            params["symbol"] = symbol
+        if status:
+            params["status"] = status
+        if created_start is not None:
+            params["created_start"] = created_start
+        if created_end is not None:
+            params["created_end"] = created_end
+
+        response = self._send_api_request(
+            c.GET, c.Endpoints.CRYPTO_V4_DEPOSITS, query_params=params
+        )
+        return response
+
+    def fetch_crypto_withdraws_v4(
+        self,
+        page: Optional[int] = None,
+        limit: Optional[int] = None,
+        symbol: Optional[str] = None,
+        status: Optional[str] = None,
+        created_start: Optional[int] = None,
+        created_end: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Fetch crypto withdrawal history using v4 API."""
+        params: Dict[str, Any] = {}
+        if page is not None:
+            params["page"] = page
+        if limit is not None:
+            params["limit"] = limit
+        if symbol:
+            params["symbol"] = symbol
+        if status:
+            params["status"] = status
+        if created_start is not None:
+            params["created_start"] = created_start
+        if created_end is not None:
+            params["created_end"] = created_end
+
+        response = self._send_api_request(
+            c.GET, c.Endpoints.CRYPTO_V4_WITHDRAWS, query_params=params
+        )
+        return response
+
+    def fetch_crypto_coins_v4(self) -> Dict[str, Any]:
+        """Fetch available cryptocurrencies using v4 API."""
+        response = self._send_api_request(c.GET, c.Endpoints.CRYPTO_V4_COINS)
+        return response
+
+    def fetch_crypto_compensations_v4(self) -> Dict[str, Any]:
+        """Fetch compensation information using v4 API."""
+        response = self._send_api_request(c.GET, c.Endpoints.CRYPTO_V4_COMPENSATIONS)
         return response

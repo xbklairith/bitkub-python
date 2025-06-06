@@ -1,28 +1,25 @@
 # fixture
 import pytest
-
 import requests_mock
 
 
 @pytest.fixture
 def input_value():
-
     input = 39
     return input
 
 
 @pytest.fixture
 def mock_requests():
-
     with requests_mock.Mocker() as mock:
-
         yield mock
 
 
 @pytest.fixture
 def mock_client(mock_requests):
-    from bitkub import Client
     import logging
+
+    from bitkub import Client
 
     client = Client(api_key="api-key", api_secret="api-secret")
 
@@ -64,7 +61,7 @@ def with_request_status_invalid_json(mock_requests: requests_mock.Mocker):
 @pytest.fixture
 def with_request_tickers(mock_requests: requests_mock.Mocker):
     mock_requests.get(
-        "/api/market/ticker",
+        "/api/v3/market/ticker",
         json={
             "THB_BTC": {
                 "id": 1,
