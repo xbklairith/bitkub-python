@@ -1,9 +1,10 @@
 class BitkubException(Exception):
-    def __init__(self, message):
+    def __init__(self, message: str) -> None:
         self.message = message
+        super().__init__(message)
 
-    def __str__(self):  # pragma: no cover
-        return "RequestError: %s" % (self.message)
+    def __str__(self) -> str:  # pragma: no cover
+        return f"RequestError: {self.message}"
 
 
 class BitkubAPIException(Exception):
@@ -15,9 +16,10 @@ class BitkubAPIException(Exception):
         code (int): The error code.
     """
 
-    def __init__(self, message, code):
+    def __init__(self, message: str, code: int) -> None:
         self.message = message
         self.code = code
+        super().__init__(message)
 
-    def __str__(self):  # pragma: no cover
-        return "BitkubAPIErrors:(%s) %s " % (self.code, self.message)
+    def __str__(self) -> str:  # pragma: no cover
+        return f"BitkubAPIErrors:({self.code}) {self.message} "

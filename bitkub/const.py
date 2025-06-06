@@ -10,12 +10,12 @@ class Endpoints:
     # public endpoints
     STATUS = "/api/status"
     MARKET_SYMBOLS = "/api/market/symbols"
-    MARKET_TICKER = "/api/market/ticker"
-    MARKET_TRADES = "/api/market/trades"
-    MARKET_BIDS = "/api/market/bids"
-    MARKET_ASKS = "/api/market/asks"
+    MARKET_TICKER = "/api/v3/market/ticker"
+    MARKET_TRADES = "/api/v3/market/trades"
+    MARKET_BIDS = "/api/v3/market/bids"
+    MARKET_ASKS = "/api/v3/market/asks"
     MARKET_BOOKS = "/api/market/books"
-    MARKET_DEPTH = "/api/market/depth"
+    MARKET_DEPTH = "/api/v3/market/depth"
     TRADING_VIEW_HISTORY = "/tradingview/history"
     SERVER_TIME = "/api/v3/servertime"
 
@@ -41,6 +41,13 @@ class Endpoints:
     CRYPTO_DEPOSIT_HISTORY = "/api/v3/crypto/deposit-history"
     CRYPTO_WITHDRAW_HISTORY = "/api/v3/crypto/withdraw-history"
     CRYPTO_GENERATE_ADDRESS = "/api/v3/crypto/generate-address"
+
+    # v4 crypto endpoints
+    CRYPTO_V4_ADDRESSES = "/api/v4/crypto/addresses"
+    CRYPTO_V4_DEPOSITS = "/api/v4/crypto/deposits"
+    CRYPTO_V4_WITHDRAWS = "/api/v4/crypto/withdraws"
+    CRYPTO_V4_COINS = "/api/v4/crypto/coins"
+    CRYPTO_V4_COMPENSATIONS = "/api/v4/crypto/compensations"
     FIAT_ACCOUNTS = "/api/v3/fiat/accounts"
     FIAT_WITHDRAW = "/api/v3/fiat/withdraw"
     FIAT_DEPOSIT_HISTORY = "/api/v3/fiat/deposit-history"
